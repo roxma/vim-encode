@@ -1,5 +1,4 @@
 
-" TODO: char type, line type should encode '\n' if necessary
 " TODO: url string encode
 " TODO: c string encode
 " TODO: json string encode
@@ -29,49 +28,69 @@ func! encode#begin()
 	return 'g@'
 endfunction
 
+func s:lineSp()
+	if &l:ff=="unix"
+		return "\n"
+	elseif &l:ff=="doc"
+		return "\r\n"
+	elseif &l:ff=="mac"
+		return "\r"
+	endif
+	return "\n"
+endfunc
 
 func! encode#op(type)
 
-	let l:begin = getpos("'[")
-	let l:end   = getpos("']")
-	let l:bl    = l:begin[1]
-	let l:el    = l:end[1]
+	let l:bpos  = getpos("'[")
+	let l:epos  = getpos("']")
+	" don't know vim has any guarantee that `'[` is always greater than or equal to `']`
+	if l:bpos[1]>l:epos[1] || (l:bpos[1]==l:epos[1] && l:bpos[2]>l:epos[2])
+		let l:bpos  = getpos("']")
+		let l:epos  = getpos("'[")
+	endif
+	let l:bl = l:bpos[1]
+	let l:bc = l:bpos[2]
+	let l:el = l:epos[1]
+	let l:ec = l:epos[2]
 
 	if a:type=="line"
-		let l:i = l:bl
-		while l:i <= l:el
-			call setline(l:i,w:encode_handler(getline(l:i)))
-			let l:i += 1
-		endwhile
+		let l:raw     = join(getline(l:bl,l:el),s:lineSp())
+		let l:encoded = w:encode_handler(l:raw)
+		let l:lines   = split(l:encoded,s:lineSp(),1)
+		execute l:bl.','.l:el.'delete'
+		call append(l:bl-1,l:lines)
 	elseif a:type=="char"
-		let l:i = l:bl
-		while l:i <= l:el
-			let l:line    = getline(l:i)
-			let l:s       = l:line
-			let l:prefix  = ''
-			let l:postfix = ''
-			if l:i==l:bl
-				let l:prefix = strpart(l:line,0,l:begin[2]-1)
-				let l:s      = strpart(l:line,l:begin[2]-1)
-			endif
-			if l:i==l:el
-				let l:postfix = strpart(l:line,l:end[2])
-				let l:s       = strpart(l:s,0,len(l:s)-(len(l:line)-l:end[2]))
-			endif
-			call setline(l:i,l:prefix.w:encode_handler(l:s).l:postfix)
-			let l:i += 1
-		endwhile
+		if w:encode_curpos[4]+1<0
+			" if cursor is at end of line, add a new line
+			let l:el+=1
+			let l:ec=0
+		endif
+		if l:bl == l:el
+			let l:raw = strpart(getline(l:bl),l:bc-1,l:ec-l:bc+1)
+		else
+			let l:raw = join([strpart(getline(l:bl),l:bc-1)]+getline(l:bl+1,l:el-1)+[strpart(getline(l:el),0,l:ec)],s:lineSp())
+		endif
+		let g:raw = l:raw
+		let l:encoded   = w:encode_handler(l:raw)
+		let l:lines     = split(l:encoded,s:lineSp(),1)[0:1]
+		let l:prefix    = strpart(getline(l:bl),0,l:bc-1)
+		let l:postfix   = strpart(getline(l:el),l:ec)
+		let l:lines[0]  = l:prefix . l:lines[0]
+		let l:lines[-1] = l:lines[-1] . l:postfix
+		execute l:bl.','.l:el.'delete'
+		call append(l:bl-1,l:lines)
+		call cursor(l:bl,l:bc)
 	elseif a:type=="block"
 		let l:i = l:bl
 		while l:i <= l:el
 			let l:line    = getline(l:i)
-			let l:prefix  = strpart(l:line,0,l:begin[2]-1)
+			let l:prefix  = strpart(l:line,0,l:bc-1)
 			let l:postfix = ''
-			let l:s       = strpart(l:line,l:begin[2]-1)
+			let l:s       = strpart(l:line,l:bc-1)
 			if w:encode_curpos[4]+1>0
-				let l:postfix = strpart(l:line,l:end[2])
-				if len(l:line)-l:end[2]>=0
-					let l:s       = strpart(l:s,0,len(l:s)-(len(l:line)-l:end[2]))
+				let l:postfix = strpart(l:line,l:ec)
+				if len(l:line)-l:ec>=0
+					let l:s       = strpart(l:s,0,len(l:s)-(len(l:line)-l:ec))
 				endif
 			endif
 			call setline(l:i,l:prefix.w:encode_handler(l:s).l:postfix)
