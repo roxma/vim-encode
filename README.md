@@ -17,7 +17,7 @@ supported encode/escape type:
 
 press `<Leader>e` the way you use vim's standard operators like `d`(delete)
 
-screen cast here:
+Screencast here:
 
 [![asciicast](https://asciinema.org/a/ew105rtskuxg65a1f442stegg.png)](https://asciinema.org/a/ew105rtskuxg65a1f442stegg)
 
