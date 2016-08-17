@@ -1,11 +1,12 @@
 
-" TODO: url string encode
-" TODO: c string encode
-" TODO: json string encode
 
 let g:encode#handlers = {
 			\ 'html': function('encode#html_encode')
 			\ , 'xml': function('encode#html_encode')
+			\ , 'url': function('encode#url_encode')
+			\ , 'hex': function('encode#hex_encode')
+			\ , 'cstring': function('encode#cstring_encode')
+			\ , 'cstring_pretty': function('encode#cstring_pretty_encode')
 			\}
 
 func! encode#add(type,handler)
@@ -21,7 +22,7 @@ endfunc
 func! encode#begin()
 	" echo "h(html) u(url) x(xml)"
 	" let l:c = nr2char(getchar())
-	let l:type = input("html/xml/url, please enter escape type: ", '', 'custom,encode#cmd_complete')
+	let l:type = input("Encode type: ", '', 'custom,encode#cmd_complete')
 	let w:encode_handler = g:encode#handlers[l:type]
 	let w:encode_curpos = getcurpos()
 	let &g:opfunc = 'encode#op'
@@ -70,7 +71,6 @@ func! encode#op(type)
 		else
 			let l:raw = join([strpart(getline(l:bl),l:bc-1)]+getline(l:bl+1,l:el-1)+[strpart(getline(l:el),0,l:ec)],s:lineSp())
 		endif
-		let g:raw = l:raw
 		let l:encoded   = w:encode_handler(l:raw)
 		let l:lines     = split(l:encoded,s:lineSp(),1)[0:1]
 		let l:prefix    = strpart(getline(l:bl),0,l:bc-1)
@@ -98,21 +98,6 @@ func! encode#op(type)
 		endwhile
 	endif
 endfunc
-
-
-func! encode#html_encode(text)
-	let l:find    = ['&'      , '<'    , '>'    , '"'      , "'"]
-	let l:replace = ['&nbsp;' , '&lt;' , '&gt;' , '&quot;' , '&apos;']
-	return encode#strreplace(a:text,l:find,l:replace)
-endfunc
-
-
-func! encode#xml_encode(text)
-	let l:find    = ['&'      , '<'    , '>'    , '"'      , "'"]
-	let l:replace = ['&nbsp;' , '&lt;' , '&gt;' , '&quot;' , '&apos;']
-	return encode#strreplace(a:text,l:find,l:replace)
-endfunc
-
 
 " these stuff should moved into a standalone plugin
 
@@ -165,5 +150,94 @@ func! encode#strreplace(s,find,replace)
 		return l:ret
 	endif
 
+endfunc
+
+func! encode#html_encode(text)
+	let l:find    = ['&'      , '<'    , '>'    , '"'      , "'"]
+	let l:replace = ['&nbsp;' , '&lt;' , '&gt;' , '&quot;' , '&apos;']
+	return encode#strreplace(a:text,l:find,l:replace)
+endfunc
+
+
+func! encode#xml_encode(text)
+	let l:find    = ['&'      , '<'    , '>'    , '"'      , "'"]
+	let l:replace = ['&nbsp;' , '&lt;' , '&gt;' , '&quot;' , '&apos;']
+	return encode#strreplace(a:text,l:find,l:replace)
+endfunc
+
+func! encode#url_encode(text)
+	let l:i = 0
+	let l:list = []
+	while l:i<len(a:text)
+		let l:c = a:text[l:i]
+		if ('A' <= l:c && l:c <= 'Z') || ('a' <= l:c && l:c <= 'z') || ('0' <= l:c && l:c <= '9')
+			let l:i += 1
+			let l:list += [l:c]
+		else
+			let l:list += ['%'. ('0123456789ABCDEF'[char2nr(l:c)/16]) . ('0123456789ABCDEF'[char2nr(l:c)%16])]
+			let l:i +=1
+		endif
+	endwhile
+	return join(l:list,'')
+endfunc
+
+func! encode#hex_encode(text)
+	let l:i = 0
+	let l:list = []
+	while l:i<len(a:text)
+		let l:c = a:text[l:i]
+		let l:list += [('0123456789ABCDEF'[char2nr(l:c)/16]) . ('0123456789ABCDEF'[char2nr(l:c)%16])]
+		let l:i +=1
+	endwhile
+	return join(l:list,'')
+endfunc
+
+func! encode#cstring_encode(text)
+	let l:i = 0
+	let l:list = split(a:text,'\v\ze.')
+	while l:i<len(l:list)
+		let l:c = l:list[l:i]
+		if ('A' <= l:c && l:c <= 'Z') || ('a' <= l:c && l:c <= 'z') || (encode#strfind("0123456789`!@#$%^&*()_-+=,<.>?/;:{[}]",l:c,0)!=-1) || (char2nr(l:c)>=256) 
+			let l:list[l:i] = l:c
+			let l:i += 1
+		else
+			let l:rep = encode#strreplace(
+						\   l:c
+						\ , ['\',  "\t", "\r", "\n", "'",   '"']
+						\ , ['\\', '\t', '\r', '\n', "\\'", '\"']
+						\ )
+			if l:rep!=l:c
+				let l:list[l:i] = l:rep
+			else
+				let l:list[l:i] = '\x'. ('0123456789ABCDEF'[char2nr(l:c)/16]) . ('0123456789ABCDEF'[char2nr(l:c)%16])
+			endif
+			let l:i +=1
+		endif
+	endwhile
+	return join(l:list,'')
+endfunc
+
+func! encode#cstring_pretty_encode(text)
+	let l:i = 0
+	let l:list = split(a:text,'\v\ze.')
+	while l:i<len(l:list)
+		let l:c = l:list[l:i]
+		if ('A' <= l:c && l:c <= 'Z') || ('a' <= l:c && l:c <= 'z') || (encode#strfind("0123456789`!@#$%^&*()_-+=,<.>?/;:{[}]| ",l:c,0)!=-1) || (char2nr(l:c)>=256) 
+			let l:list[l:i] = l:c
+		else
+			let l:rep = encode#strreplace(
+						\   l:c
+						\ , ['\',  "\t", "\r", "\n", "'",   '"']
+						\ , ['\\', '\t', '\r', "\\n\"\n\"", "\\'", '\"']
+						\ )
+			if l:rep!=#l:c
+				let l:list[l:i] = l:rep
+			else
+				let l:list[l:i] = '\x'. ('0123456789ABCDEF'[char2nr(l:c)/16]) . ('0123456789ABCDEF'[char2nr(l:c)%16])
+			endif
+		endif
+		let l:i +=1
+	endwhile
+	return '"' . join(l:list,'') . '"'
 endfunc
 
