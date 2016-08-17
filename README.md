@@ -2,7 +2,9 @@
 
 ## description
 
-Provides simple stirng encode/escape functionality inside vim.
+Vim-encode provides simple stirng encode/escape functionality inside vim. It
+helps make your life easier when you need to copy some text as string into your
+code.
 
 supported encode/escape type:
 
