@@ -19,10 +19,14 @@ func! encode#cmd_complete(A,L,P)
 endfunc
 
 
-func! encode#begin()
+func! encode#begin(...)
 	" echo "h(html) u(url) x(xml)"
 	" let l:c = nr2char(getchar())
-	let l:type = input("Encode type: ", '', 'custom,encode#cmd_complete')
+	if a:0 == 0
+		let l:type = input("Encode type: ", '', 'custom,encode#cmd_complete')
+	else
+		let l:type = a:1
+	endif
 	let w:encode_handler = g:encode#handlers[l:type]
 	let w:encode_curpos = getcurpos()
 	let &g:opfunc = 'encode#op'

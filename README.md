@@ -29,6 +29,13 @@ Screencast here:
 If you don't want default mapping, add `let g:vim_encode_default_mapping=0`
 into your vimrc. Use `<Plug>(encode)` for your own mapping.
 
+If you want shorter keys for more specific encoding, html encode for example:
+
+```vim
+vnoremap <expr> <your_keys> encode#begin('html')
+```
+
+
 ## How to Unencode?
 
 Well, this feature is not yet implemented.
