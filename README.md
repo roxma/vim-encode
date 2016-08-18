@@ -44,3 +44,9 @@ Well, this feature is not yet implemented.
 This plugin is for encoding pasted text for you code. You should keep the
 original text as comment for readability or somewhere else anyway.
 
+
+## How to add my own encode type?
+
+Call `encode#add(type,handler)`, the hander here is a function that takes raw
+string as parameter and return the encoded string.
+
