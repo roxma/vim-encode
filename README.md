@@ -32,6 +32,7 @@ into your vimrc. Use `<Plug>(encode)` for your own mapping.
 If you want shorter keys for more specific encoding, html encode for example:
 
 ```vim
+nnoremap <expr> <your_keys> encode#begin('html')
 vnoremap <expr> <your_keys> encode#begin('html')
 ```
 
