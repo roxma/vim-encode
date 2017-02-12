@@ -174,9 +174,9 @@ func! encode#url_encode(text)
 	let l:list = []
 	while l:i<len(a:text)
 		let l:c = a:text[l:i]
-		if ('A' <= l:c && l:c <= 'Z') || ('a' <= l:c && l:c <= 'z') || ('0' <= l:c && l:c <= '9')
+		if ('A' <= l:c && l:c <= 'Z') || ('a' <= l:c && l:c <= 'z') || ('0' <= l:c && l:c <= '9') || (l:c=='.')
 			let l:i += 1
-			let l:list += [l:c]
+			call add(l:list,l:c)
 		else
 			let l:list += ['%'. ('0123456789ABCDEF'[char2nr(l:c)/16]) . ('0123456789ABCDEF'[char2nr(l:c)%16])]
 			let l:i +=1
